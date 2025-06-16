@@ -1,0 +1,163 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Do Or Die Gaming Hub</title>
+    <link href="style.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+    <!-- Login/Register Section -->
+    <div id="auth-section" class="auth-container">
+        <div class="auth-box">
+            <h1>Welcome to Do Or Die Gaming Hub</h1>
+            <div class="auth-tabs">
+                <button class="tab-btn active" onclick="showLogin()">Login</button>
+                <button class="tab-btn" onclick="showRegister()">Register</button>
+            </div>
+            
+            <!-- Login Form -->
+            <div id="login-form" class="form-container">
+                <h2>Login</h2>
+                <form onsubmit="loginUser(event)">
+                    <input type="text" id="login-username" placeholder="Username" required>
+                    <input type="password" id="login-password" placeholder="Password" required>
+                    <button type="submit">Login</button>
+                </form>
+            </div>
+            
+            <!-- Register Form -->
+            <div id="register-form" class="form-container" style="display: none;">
+                <h2>Register</h2>
+                <form onsubmit="registerUser(event)">
+                    <input type="text" id="reg-username" placeholder="Username" required>
+                    <input type="password" id="reg-password" placeholder="Password" required>
+                    <input type="password" id="reg-confirm" placeholder="Confirm Password" required>
+                    <button type="submit">Register</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Website -->
+    <div id="main-site" class="main-container" style="display: none;">
+        <!-- Navigation Bar -->
+        <nav class="navbar">
+            <div class="nav-container">
+                <div class="nav-brand">
+                    <span class="brand-icon">🦊</span>
+                    Fox King Place
+                </div>
+                <ul class="nav-menu">
+                    <li><a href="index.html" class="nav-link active">
+                        <span class="nav-icon">🏠</span>Home
+                    </a></li>
+                    <li><a href="profile.html" class="nav-link">
+                        <span class="nav-icon">👤</span>Profile
+                    </a></li>
+                    <li><a href="games.html" class="nav-link">
+                        <span class="nav-icon">🎮</span>Games
+                    </a></li>
+                    <li><a href="schoolwork.html" class="nav-link">
+                        <span class="nav-icon">📚</span>School Work
+                    </a></li>
+                    <li><a href="chat.html" class="nav-link">
+                        <span class="nav-icon">💬</span>Chat
+                    </a></li>
+                    <li><a href="#" onclick="logout()" class="nav-link logout">
+                        <span class="nav-icon">🚪</span>Logout
+                    </a></li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Background Video -->
+        <video id="background-video" autoplay muted loop>
+            <source src="background.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+
+        <!-- Background Music -->
+        <audio id="background-music" loop muted>
+            <source src="music.mp3" type="audio/mpeg">
+            Your browser does not support the audio element.
+        </audio>
+
+        <!-- Music Control Button -->
+        <div class="music-control">
+            <button id="music-toggle" onclick="toggleMusic()" title="Unmute Music">🔇</button>
+        </div>
+
+        <!-- Welcome Section -->
+        <div id="welcome-section" class="content-section">
+            <div class="welcome-container">
+                <h1 class="animated-welcome">Welcome To Fox King Place</h1>
+                <p class="welcome-subtitle">Your ultimate gaming and learning destination 🌐 Welcome to a hub of creativity and resources.
+                    
+                🎮 Explore games, tools, and school essentials – all in one place.</p>
+            </div>
+        </div>
+
+        <!-- Profile Section -->
+        <div id="profile-section" class="content-section" style="display: none;">
+            <div class="profile-header"></div>
+                <div class="profile-info">
+                    <h1 id="profile-name">Do Or Die</h1>
+                    <p id="profile-username"></p>
+                </div>
+                <button onclick="editProfile()" class="edit-btn">Edit Profile</button>
+            </div>
+            
+            <!-- Profile Edit Form -->
+            <div id="profile-edit" class="edit-form" style="display: none;">
+                <h3>Edit Profile</h3>
+                <input type="text" id="edit-name" placeholder="Display Name">
+                <textarea id="edit-bio" placeholder="Bio"></textarea>
+                <button onclick="saveProfile()">Save Changes</button>
+                <button onclick="cancelEdit()">Cancel</button>
+            </div>
+        </div>
+
+        <!-- Games Section -->
+        <div id="games-section" class="content-section" style="display: none;">
+            <h1>Games Download Center</h1>
+            <div id="games-list">
+                <div class="welcome-message">
+                    <p style="color: #666; text-align: center; font-size: 18px;">
+                        🎮 No games available yet. Games will appear here when uploaded by the owner.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- School Work Section -->
+        <div id="schoolwork-section" class="content-section" style="display: none;">
+            <h1>School Work Downloads</h1>
+            <div id="schoolwork-list">
+                <div class="welcome-message">
+                    <p style="color: #666; text-align: center; font-size: 18px;">
+                        📚 No assignments available yet. School work will appear here when uploaded by the owner.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Section -->
+        <div id="chat-section" class="content-section" style="display: none;">
+            <h1>Community Chat</h1>
+            <div class="chat-redirect-container">
+                <div class="welcome-container">
+                    <h2>Welcome to Fox King Place Chat! 💬</h2>
+                    <p class="welcome-subtitle">Join our community chat rooms to connect with other users</p>
+                    <button onclick="window.location.href='chat.html'" class="chat-redirect-btn">
+                        <span class="nav-icon">💬</span>Enter Chat Rooms
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

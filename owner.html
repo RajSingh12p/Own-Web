@@ -1,0 +1,149 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Owner Panel - Fox King Place</title>
+    <link href="style.css" rel="stylesheet" type="text/css" />
+    <link href="owner.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <span class="brand-icon">👑</span>
+                Fox King Place - Owner Panel
+            </div>
+            <ul class="nav-menu">
+                <li><a href="index.html" class="nav-link">
+                    <span class="nav-icon">🏠</span>Home
+                </a></li>
+                <li><a href="owner.html" class="nav-link active">
+                    <span class="nav-icon">👑</span>Owner Panel
+                </a></li>
+                <li><a href="#" onclick="logout()" class="nav-link logout">
+                    <span class="nav-icon">🚪</span>Logout
+                </a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="owner-container">
+        <div class="owner-header">
+            <h1>Welcome, Owner Raj! 👑</h1>
+            <p>Manage your platform content and uploads</p>
+        </div>
+
+        <div class="upload-sections">
+            <div class="upload-section">
+                <div class="section-header">
+                    <h2>🎮 Upload Games</h2>
+                    <p>Add new games to the games section</p>
+                </div>
+                <form class="upload-form" id="game-upload-form">
+                    <input type="text" id="game-title" placeholder="Game Title" required>
+                    <textarea id="game-description" placeholder="Game Description" required></textarea>
+                    <input type="url" id="game-url" placeholder="Direct download URL for the game file" required>
+                    <input type="text" id="game-rating" placeholder="Rating (e.g., 4.8)" required>
+                    <input type="text" id="game-downloads" placeholder="Downloads (e.g., 10K+)" required>
+                    <button type="submit">Upload Game</button>
+                </form>
+            </div>
+
+            <div class="upload-section">
+                <div class="section-header">
+                    <h2>📚 Upload School Work</h2>
+                    <p>Add new assignments and study materials</p>
+                </div>
+                <form class="upload-form" id="schoolwork-upload-form">
+                    <select id="subject-select" required>
+                        <option value="">Select Subject</option>
+                        <option value="math">Mathematics</option>
+                        <option value="science">Science</option>
+                        <option value="english">English</option>
+                        <option value="hindi">Hindi</option>
+                        <option value="sst">SST</option>
+                    </select>
+                    <input type="text" id="assignment-title" placeholder="Assignment Title" required>
+                    <textarea id="assignment-description" placeholder="Assignment Description" required></textarea>
+                    <input type="date" id="due-date" required>
+                    <select id="difficulty-level" required>
+                        <option value="">Select Difficulty</option>
+                        <option value="easy">Easy</option>
+                        <option value="medium">Medium</option>
+                        <option value="hard">Hard</option>
+                    </select>
+                    <input type="file" id="assignment-file" accept=".pdf,.docx,.doc" required>
+                    <button type="submit">Upload Assignment</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="management-section">
+            <h2>📊 Platform Statistics</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-info">
+                        <h3 id="total-users">0</h3>
+                        <p>Total Users</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🎮</div>
+                    <div class="stat-info">
+                        <h3 id="total-games">3</h3>
+                        <p>Games Available</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📚</div>
+                    <div class="stat-info">
+                        <h3 id="total-assignments">8</h3>
+                        <p>Assignments</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">💬</div>
+                    <div class="stat-info">
+                        <h3 id="total-messages">50</h3>
+                        <p>Chat Messages</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="management-grid">
+            <div class="management-section">
+                <div id="games-list" class="management-list">
+                    <h3>Uploaded Games</h3>
+                </div>
+            </div>
+            
+            <div class="management-section">
+                <div id="assignments-list" class="management-list">
+                    <h3>Uploaded Assignments</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="recent-uploads">
+            <h2>Recent Uploads</h2>
+            <div id="upload-history" class="upload-list">
+                <div class="upload-item">
+                    <div class="upload-icon">🎮</div>
+                    <div class="upload-details">
+                        <h4>Epic Battle Arena</h4>
+                        <p>Game uploaded successfully</p>
+                        <span class="upload-time">Initial upload</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script src="owner.js"></script>
+</body>
+</html>

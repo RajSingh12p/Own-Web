@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - Fox King Place</title>
+    <link href="style.css" rel="stylesheet" type="text/css" />
+    <link href="profile.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <span class="brand-icon">🦊</span>
+                Fox King Place - Profile
+            </div>
+            <ul class="nav-menu">
+                <li><a href="index.html" class="nav-link">
+                    <span class="nav-icon">🏠</span>Home
+                </a></li>
+                <li><a href="profile.html" class="nav-link active">
+                    <span class="nav-icon">👤</span>Profile
+                </a></li>
+                <li><a href="games.html" class="nav-link">
+                    <span class="nav-icon">🎮</span>Games
+                </a></li>
+                <li><a href="schoolwork.html" class="nav-link">
+                    <span class="nav-icon">📚</span>School Work
+                </a></li>
+                <li><a href="chat.html" class="nav-link">
+                    <span class="nav-icon">💬</span>Chat
+                </a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="profile-wrapper">
+        <div class="profile-container">
+            <!-- Profile Card -->
+            <div class="profile-card">
+                <div class="profile-header">
+                    <div class="profile-avatar-container">
+                        <div class="profile-avatar" id="main-profile-avatar">🦊</div>
+                        <button class="change-avatar-btn" onclick="openAvatarSelector()">
+                            <span class="change-icon">✏️</span>
+                        </button>
+                    </div>
+                    <div class="profile-details">
+                        <h1 id="profile-display-name">Fox King</h1>
+                        <p id="profile-username">@foxking</p>
+                        <div class="profile-status">
+                            <span class="status-indicator online"></span>
+                            <span class="status-text">Online</span>
+                        </div>
+                    </div>
+                    <button class="edit-profile-btn" onclick="toggleEditMode()">
+                        <span>✏️</span> Edit Profile
+                    </button>
+                </div>
+
+                <div class="profile-bio">
+                    <p id="profile-bio">Welcome to my gaming profile! Ready to dominate the battlefield! 🎮</p>
+                </div>
+
+                <div class="profile-stats">
+                    <div class="stat-item">
+                        <div class="stat-number" id="games-count">0</div>
+                        <div class="stat-label">Games Available</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="assignments-count">0</div>
+                        <div class="stat-label">Assignments</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Avatar Selector Modal -->
+        <div id="avatar-selector" class="modal" style="display: none;">
+            <div class="modal-content avatar-modal">
+                <div class="modal-header">
+                    <h2>Choose Your Avatar</h2>
+                    <button class="close-btn" onclick="closeAvatarSelector()">×</button>
+                </div>
+                <div class="avatar-options">
+                    <div class="avatar-section">
+                        <h3>Emoji Avatars</h3>
+                        <div class="avatar-grid">
+                            <div class="avatar-option" data-avatar="🦊" onclick="selectAvatar('🦊')">🦊</div>
+                            <div class="avatar-option" data-avatar="🐺" onclick="selectAvatar('🐺')">🐺</div>
+                            <div class="avatar-option" data-avatar="🦁" onclick="selectAvatar('🦁')">🦁</div>
+                            <div class="avatar-option" data-avatar="🐯" onclick="selectAvatar('🐯')">🐯</div>
+                            <div class="avatar-option" data-avatar="🐸" onclick="selectAvatar('🐸')">🐸</div>
+                            <div class="avatar-option" data-avatar="🐼" onclick="selectAvatar('🐼')">🐼</div>
+                            <div class="avatar-option" data-avatar="🦅" onclick="selectAvatar('🦅')">🦅</div>
+                            <div class="avatar-option" data-avatar="🦉" onclick="selectAvatar('🦉')">🦉</div>
+                            <div class="avatar-option" data-avatar="🐉" onclick="selectAvatar('🐉')">🐉</div>
+                            <div class="avatar-option" data-avatar="🔥" onclick="selectAvatar('🔥')">🔥</div>
+                            <div class="avatar-option" data-avatar="⚡" onclick="selectAvatar('⚡')">⚡</div>
+                            <div class="avatar-option" data-avatar="💀" onclick="selectAvatar('💀')">💀</div>
+                            <div class="avatar-option" data-avatar="👑" onclick="selectAvatar('👑')">👑</div>
+                            <div class="avatar-option" data-avatar="💎" onclick="selectAvatar('💎')">💎</div>
+                            <div class="avatar-option" data-avatar="🎮" onclick="selectAvatar('🎮')">🎮</div>
+                            <div class="avatar-option" data-avatar="🚀" onclick="selectAvatar('🚀')">🚀</div>
+                        </div>
+                    </div>
+                    <div class="avatar-section">
+                        <h3>Custom Icon</h3>
+                        <div class="custom-avatar-upload">
+                            <input type="file" id="custom-avatar-input" accept="image/*" onchange="handleCustomAvatar(this)">
+                            <label for="custom-avatar-input" class="upload-btn">
+                                📁 Upload Custom Icon
+                            </label>
+                            <div id="custom-preview" style="display: none;">
+                                <img id="custom-avatar-preview" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; cursor: pointer;" onclick="useCustomAvatar()">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Profile Modal -->
+        <div id="edit-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Edit Profile</h2>
+                    <button class="close-btn" onclick="cancelEdit()">×</button>
+                </div>
+                <form id="edit-form">
+                    <div class="form-group">
+                        <label for="edit-display-name">Display Name</label>
+                        <input type="text" id="edit-display-name" placeholder="Enter display name">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-bio">Bio</label>
+                        <textarea id="edit-bio" placeholder="Tell us about yourself"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" onclick="saveProfile()" class="save-btn">Save Changes</button>
+                        <button type="button" onclick="cancelEdit()" class="cancel-btn">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script src="profile.js"></script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat - Fox King Place</title>
+    <link href="style.css" rel="stylesheet" type="text/css" />
+    <link href="chat.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <span class="brand-icon">🦊</span>
+                Fox King Place - Chat
+            </div>
+            <ul class="nav-menu">
+                <li><a href="index.html" class="nav-link">
+                    <span class="nav-icon">🏠</span>Home
+                </a></li>
+                <li><a href="profile.html" class="nav-link">
+                    <span class="nav-icon">👤</span>Profile
+                </a></li>
+                <li><a href="games.html" class="nav-link">
+                    <span class="nav-icon">🎮</span>Games
+                </a></li>
+                <li><a href="schoolwork.html" class="nav-link">
+                    <span class="nav-icon">📚</span>School Work
+                </a></li>
+                <li><a href="chat.html" class="nav-link active">
+                    <span class="nav-icon">💬</span>Chat
+                </a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="chat-layout">
+        <div class="chat-sidebar">
+            <div class="sidebar-header">
+                <h3>Chat Rooms</h3>
+            </div>
+
+            <div class="room-list">
+                <div class="room-item active" data-room="general" onclick="switchRoom('general')">
+                    <span class="room-icon">💬</span>
+                    <span class="room-name">General</span>
+                    <span class="unread-count" id="unread-general" style="display: none;">0</span>
+                </div>
+                <div class="room-item" data-room="gaming" onclick="switchRoom('gaming')">
+                    <span class="room-icon">🎮</span>
+                    <span class="room-name">Gaming</span>
+                    <span class="unread-count" id="unread-gaming" style="display: none;">0</span>
+                </div>
+                <div class="room-item" data-room="study" onclick="switchRoom('study')">
+                    <span class="room-icon">📚</span>
+                    <span class="room-name">Study Hall</span>
+                    <span class="unread-count" id="unread-study" style="display: none;">0</span>
+                </div>
+            </div>
+
+            <div class="online-users">
+                <h4>Online Users (<span id="online-count">0</span>)</h4>
+                <div class="user-list" id="online-users-list">
+                    <!-- Online users will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-main">
+            <div class="chat-header">
+                <div class="room-info">
+                    <h2 id="current-room-name">General Discussion</h2>
+                    <span id="room-description">Welcome to the general chat room</span>
+                </div>
+                <div class="chat-actions">
+                    <button class="action-btn" onclick="clearChatHistory()" title="Clear Chat">🗑️</button>
+                    <button class="action-btn" onclick="toggleNotifications()" title="Toggle Notifications" id="notification-btn">🔔</button>
+                    <button class="action-btn" onclick="toggleEmojis()" title="Emojis">😀</button>
+                </div>
+            </div>
+
+            <div class="messages-container" id="messages-container">
+                <!-- Messages will be populated by JavaScript -->
+            </div>
+
+            <div class="typing-indicator" id="typing-indicator" style="display: none;">
+                <div class="message-avatar">⌨️</div>
+                <div class="message-content">
+                    <span class="typing-text" id="typing-text">Someone is typing...</span>
+                    <div class="typing-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="emoji-picker" id="emoji-picker" style="display: none;">
+                <div class="emoji-categories">
+                    <button class="emoji-category active" onclick="showEmojiCategory('faces')">😀</button>
+                    <button class="emoji-category" onclick="showEmojiCategory('objects')">🎮</button>
+                    <button class="emoji-category" onclick="showEmojiCategory('symbols')">❤️</button>
+                </div>
+                <div class="emoji-grid" id="emoji-grid">
+                    <!-- Emojis will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <div class="message-input-container">
+                <div class="message-input">
+                    <input type="file" id="file-input" style="display: none;" onchange="handleFileShare(this)" accept="image/*,.pdf,.txt,.doc,.docx">
+                    <button class="attach-btn" onclick="document.getElementById('file-input').click()" title="Share File">📎</button>
+                    <input type="text" 
+                           id="message-input" 
+                           placeholder="Type a message..."
+                           autocomplete="off"
+                           maxlength="500">
+                    <button class="voice-btn" onclick="toggleVoiceRecording()" title="Voice Message" id="voice-btn">🎤</button>
+                    <button class="send-btn" onclick="sendMessage()" title="Send Message">➤</button>
+                </div>
+                <div class="message-status" id="message-status"></div>
+            </div>
+        </div>
+    </div>
+
+    
+
+    <script src="script.js"></script>
+    <script src="chat.js"></script>
+</body>
+</html>
