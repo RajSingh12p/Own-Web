@@ -28,16 +28,26 @@ class Database {
     async connect() {
         console.log('Connecting to database...');
         try {
+            // Use unpooled connection if available, otherwise fall back to pooled
+            const connectionString = this.unpooledConnection || this.connectionString;
+            
             this.pool = new Pool({
-                connectionString: this.connectionString,
+                connectionString: connectionString,
                 ssl: {
                     rejectUnauthorized: false
-                }
+                },
+                max: 20,
+                idleTimeoutMillis: 30000,
+                connectionTimeoutMillis: 2000,
             });
             
             // Test connection
             const client = await this.pool.connect();
             console.log('Database connected successfully');
+            
+            // Initialize database tables
+            await this.initializeTables(client);
+            
             client.release();
         } catch (error) {
             console.error('Database connection failed:', error);
@@ -52,6 +62,101 @@ class Database {
             return result;
         } catch (error) {
             console.error('Query failed:', error);
+            throw error;
+        }
+    }
+
+    async initializeTables(client) {
+        console.log('Initializing database tables...');
+        try {
+            // Create tables if they don't exist
+            await client.query(`
+                CREATE TABLE IF NOT EXISTS users (
+                    id SERIAL PRIMARY KEY,
+                    username VARCHAR(50) UNIQUE NOT NULL,
+                    display_name VARCHAR(100) NOT NULL,
+                    password_hash VARCHAR(255) NOT NULL,
+                    bio TEXT DEFAULT 'Welcome to my gaming profile!',
+                    avatar_url TEXT,
+                    is_owner BOOLEAN DEFAULT FALSE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            `);
+
+            await client.query(`
+                CREATE TABLE IF NOT EXISTS chat_rooms (
+                    id SERIAL PRIMARY KEY,
+                    name VARCHAR(100) NOT NULL,
+                    description TEXT,
+                    icon VARCHAR(10) DEFAULT '💬',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            `);
+
+            await client.query(`
+                CREATE TABLE IF NOT EXISTS messages (
+                    id SERIAL PRIMARY KEY,
+                    room_id INTEGER REFERENCES chat_rooms(id) ON DELETE CASCADE,
+                    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                    message TEXT NOT NULL,
+                    message_type VARCHAR(20) DEFAULT 'text',
+                    file_url TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            `);
+
+            await client.query(`
+                CREATE TABLE IF NOT EXISTS games (
+                    id SERIAL PRIMARY KEY,
+                    title VARCHAR(200) NOT NULL,
+                    description TEXT,
+                    download_url TEXT NOT NULL,
+                    file_name VARCHAR(255),
+                    category VARCHAR(50) DEFAULT 'action',
+                    icon VARCHAR(10) DEFAULT '🎮',
+                    rating VARCHAR(10) DEFAULT '4.5',
+                    downloads VARCHAR(20) DEFAULT '0',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            `);
+
+            await client.query(`
+                CREATE TABLE IF NOT EXISTS assignments (
+                    id SERIAL PRIMARY KEY,
+                    subject VARCHAR(100) NOT NULL,
+                    title VARCHAR(200) NOT NULL,
+                    description TEXT,
+                    due_date DATE,
+                    difficulty VARCHAR(20) DEFAULT 'medium',
+                    file_url TEXT,
+                    file_name VARCHAR(255),
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            `);
+
+            // Insert default chat rooms if they don't exist
+            await client.query(`
+                INSERT INTO chat_rooms (name, description, icon) 
+                SELECT * FROM (VALUES 
+                    ('General', 'General discussion for everyone', '💬'),
+                    ('Gaming', 'Talk about games and gaming strategies', '🎮'),
+                    ('Study Hall', 'Academic discussions and homework help', '📚'),
+                    ('Random', 'Off-topic conversations and fun', '🎲')
+                ) AS v(name, description, icon)
+                WHERE NOT EXISTS (SELECT 1 FROM chat_rooms WHERE name = v.name);
+            `);
+
+            // Insert default owner account if it doesn't exist
+            await client.query(`
+                INSERT INTO users (username, display_name, password_hash, is_owner, bio) 
+                SELECT 'Raj', 'Owner Raj', 'RajPro123321', TRUE, 'The owner of Fox King Place - Gaming Hub!'
+                WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'Raj');
+            `);
+
+            console.log('Database tables initialized successfully');
+        } catch (error) {
+            console.error('Error initializing tables:', error);
             throw error;
         }
     }
@@ -76,6 +181,42 @@ app.get('/api/health', (req, res) => {
             hasUnpooled: !!DATABASE_URL_UNPOOLED
         }
     });
+});
+
+// Authentication endpoint
+app.post('/api/auth/login', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        
+        if (!username || !password) {
+            return res.status(400).json({ error: 'Username and password are required' });
+        }
+
+        const result = await db.query(
+            'SELECT id, username, display_name, bio, avatar_url, is_owner FROM users WHERE username = $1 AND password_hash = $2',
+            [username, password]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(401).json({ error: 'Invalid username or password' });
+        }
+
+        const user = result.rows[0];
+        res.json({ 
+            success: true, 
+            user: {
+                id: user.id,
+                username: user.username,
+                displayName: user.display_name,
+                bio: user.bio,
+                avatarUrl: user.avatar_url,
+                isOwner: user.is_owner
+            }
+        });
+    } catch (error) {
+        console.error('Error during login:', error);
+        res.status(500).json({ error: 'Login failed' });
+    }
 });
 
 // User management endpoints
