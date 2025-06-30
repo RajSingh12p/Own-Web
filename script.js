@@ -111,13 +111,207 @@ async function saveAssignmentToDB(assignmentData) {
     }
 }
 
+// Authentication functions
+async function loginUser(event) {
+    event.preventDefault();
+    
+    const username = document.getElementById('login-username').value;
+    const password = document.getElementById('login-password').value;
+    
+    try {
+        const response = await apiCall('/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({ username, password })
+        });
+        
+        if (response.success) {
+            currentUser = response.user;
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            showMainSite();
+        } else {
+            alert('Login failed: ' + response.error);
+        }
+    } catch (error) {
+        console.error('Login failed:', error);
+        alert('Login failed. Please check your credentials.');
+    }
+}
+
+function showMainSite() {
+    document.getElementById('auth-section').style.display = 'none';
+    document.getElementById('main-site').style.display = 'block';
+    showSection('welcome-section');
+    updateProfileInfo();
+}
+
+function showSection(sectionId) {
+    // Hide all sections
+    const sections = document.querySelectorAll('.content-section');
+    sections.forEach(section => section.style.display = 'none');
+    
+    // Show selected section
+    document.getElementById(sectionId).style.display = 'block';
+    
+    // Update navigation
+    const navLinks = document.querySelectorAll('.nav-link');
+    navLinks.forEach(link => link.classList.remove('active'));
+    
+    // Load section-specific data
+    switch(sectionId) {
+        case 'games-section':
+            loadGames();
+            break;
+        case 'schoolwork-section':
+            loadSchoolWork();
+            break;
+    }
+}
+
+function updateProfileInfo() {
+    if (currentUser) {
+        document.getElementById('profile-name').textContent = currentUser.displayName || currentUser.username;
+        document.getElementById('profile-username').textContent = '@' + currentUser.username;
+    }
+}
+
+async function loadGames() {
+    try {
+        const games = await loadGamesFromDB();
+        const gamesList = document.getElementById('games-list');
+        
+        if (games.length === 0) {
+            gamesList.innerHTML = `
+                <div class="welcome-message">
+                    <p style="color: #666; text-align: center; font-size: 18px;">
+                        🎮 No games available yet. Games will appear here when uploaded by the owner.
+                    </p>
+                </div>
+            `;
+        } else {
+            gamesList.innerHTML = games.map(game => `
+                <div class="game-card">
+                    <h3>${game.title}</h3>
+                    <p>${game.description}</p>
+                    <a href="${game.download_url}" download="${game.file_name}" class="download-btn">Download</a>
+                </div>
+            `).join('');
+        }
+    } catch (error) {
+        console.error('Failed to load games:', error);
+    }
+}
+
+async function loadSchoolWork() {
+    try {
+        const assignments = await loadAssignmentsFromDB();
+        const schoolworkList = document.getElementById('schoolwork-list');
+        
+        if (assignments.length === 0) {
+            schoolworkList.innerHTML = `
+                <div class="welcome-message">
+                    <p style="color: #666; text-align: center; font-size: 18px;">
+                        📚 No assignments available yet. School work will appear here when uploaded by the owner.
+                    </p>
+                </div>
+            `;
+        } else {
+            schoolworkList.innerHTML = assignments.map(assignment => `
+                <div class="assignment-card">
+                    <h3>${assignment.title}</h3>
+                    <p><strong>Subject:</strong> ${assignment.subject}</p>
+                    <p>${assignment.description}</p>
+                    ${assignment.due_date ? `<p><strong>Due:</strong> ${new Date(assignment.due_date).toLocaleDateString()}</p>` : ''}
+                    ${assignment.file_url ? `<a href="${assignment.file_url}" download class="download-btn">Download</a>` : ''}
+                </div>
+            `).join('');
+        }
+    } catch (error) {
+        console.error('Failed to load school work:', error);
+    }
+}
+
+function logout() {
+    currentUser = null;
+    localStorage.removeItem('currentUser');
+    document.getElementById('main-site').style.display = 'none';
+    document.getElementById('auth-section').style.display = 'block';
+}
+
+function toggleMusic() {
+    const music = document.getElementById('background-music');
+    const button = document.getElementById('music-toggle');
+    
+    if (music.muted) {
+        music.muted = false;
+        button.textContent = '🔊';
+        button.title = 'Mute Music';
+    } else {
+        music.muted = true;
+        button.textContent = '🔇';
+        button.title = 'Unmute Music';
+    }
+}
+
+function editProfile() {
+    document.getElementById('profile-edit').style.display = 'block';
+    document.getElementById('edit-name').value = currentUser.displayName || currentUser.username;
+    document.getElementById('edit-bio').value = currentUser.bio || '';
+}
+
+function cancelEdit() {
+    document.getElementById('profile-edit').style.display = 'none';
+}
+
+function saveProfile() {
+    const newName = document.getElementById('edit-name').value;
+    const newBio = document.getElementById('edit-bio').value;
+    
+    // Update local user data
+    currentUser.displayName = newName;
+    currentUser.bio = newBio;
+    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    
+    updateProfileInfo();
+    cancelEdit();
+    alert('Profile updated successfully!');
+}
+
+function initializeApp() {
+    // Check if user is already logged in
+    if (currentUser) {
+        showMainSite();
+    }
+    
+    // Set up navigation
+    document.addEventListener('click', function(e) {
+        if (e.target.matches('.nav-link')) {
+            e.preventDefault();
+            const href = e.target.getAttribute('href');
+            
+            if (href === 'index.html') {
+                showSection('welcome-section');
+            } else if (href === 'profile.html') {
+                showSection('profile-section');
+            } else if (href === 'games.html') {
+                showSection('games-section');
+            } else if (href === 'schoolwork.html') {
+                showSection('schoolwork-section');
+            } else if (href === 'chat.html') {
+                showSection('chat-section');
+            }
+        }
+    });
+}
+
 // Initialize the app
 document.addEventListener('DOMContentLoaded', function() {
     initializeApp();
     checkDatabaseHealth();
 });
 
-// Get user's IP (simplified - in real app use proper IP detection)
+// User data storage (fallback for local development)
+let users = JSON.parse(localStorage.getItem('users')) || [];
+let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
 function getUserIP() {
     return 'user_' + Math.random().toString(36).substr(2, 9); // Simulated IP
 }
@@ -200,21 +394,26 @@ function registerUser(event) {
     }
 }
 
-function loginUser(event) {
+async function loginUser(event) {
     event.preventDefault();
-
     const username = document.getElementById('login-username').value;
     const password = document.getElementById('login-password').value;
 
-    // Find user
-    const user = users.find(u => u.username === username && u.password === password);
+    try {
+        const response = await apiCall('/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({ username, password })
+        });
 
-    if (user) {
-        currentUser = user;
-        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-        showMainSite();
-    } else {
-        alert('Invalid username or password!');
+        if (response.success) {
+            currentUser = response.user;
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            showMainSite();
+            showNotification('Welcome back, ' + response.user.displayName + '!', 'success');
+        }
+    } catch (error) {
+        console.error('Login failed:', error);
+        showNotification('Invalid username or password!', 'error');
     }
 }
 
@@ -503,4 +702,104 @@ function addSchoolWork(title, description, filename) {
         <button onclick="downloadWork('${filename}')">Download PDF</button>
     `;
     workList.appendChild(workDiv);
+}
+
+async function loadGames() {
+    const gamesList = document.getElementById('games-list');
+    if (!gamesList) return;
+
+    try {
+        const games = await loadGamesFromDB();
+
+        if (games.length === 0) {
+            gamesList.innerHTML = `
+                <div class="welcome-message">
+                    <p style="color: #666; text-align: center; font-size: 18px;">
+                        🎮 No games available yet. Games will appear here when uploaded by the owner.
+                    </p>
+                </div>
+            `;
+            return;
+        }
+
+        gamesList.innerHTML = '';
+
+        games.forEach(game => {
+            const gameCard = document.createElement('div');
+            gameCard.className = 'game-card';
+            gameCard.innerHTML = `
+                <div class="game-icon">🎮</div>
+                <h3>${game.title}</h3>
+                <p>${game.description}</p>
+                <div class="game-stats">
+                    <span>⭐ ${game.rating}</span>
+                    <span>📥 ${game.downloads}</span>
+                </div>
+                <button onclick="downloadGame('${game.download_url}', '${game.file_name}')" class="download-btn">
+                    Download Game
+                </button>
+            `;
+            gamesList.appendChild(gameCard);
+        });
+    } catch (error) {
+        console.error('Failed to load games:', error);
+        gamesList.innerHTML = `
+            <div class="welcome-message">
+                <p style="color: #ff6b6b; text-align: center; font-size: 18px;">
+                    ❌ Failed to load games. Please try again later.
+                </p>
+            </div>
+        `;
+    }
+}
+
+async function loadSchoolWork() {
+    const schoolworkList = document.getElementById('schoolwork-list');
+    if (!schoolworkList) return;
+
+    try {
+        const assignments = await loadAssignmentsFromDB();
+
+        if (assignments.length === 0) {
+            schoolworkList.innerHTML = `
+                <div class="welcome-message">
+                    <p style="color: #666; text-align: center; font-size: 18px;">
+                        📚 No assignments available yet. School work will appear here when uploaded by the owner.
+                    </p>
+                </div>
+            `;
+            return;
+        }
+
+        schoolworkList.innerHTML = '';
+
+        assignments.forEach(assignment => {
+            const workCard = document.createElement('div');
+            workCard.className = 'work-card';
+            workCard.innerHTML = `
+                <div class="work-header">
+                    <h3>${assignment.title}</h3>
+                    <span class="subject-tag ${assignment.subject}">${assignment.subject.toUpperCase()}</span>
+                </div>
+                <p>${assignment.description}</p>
+                <div class="work-meta">
+                    <span class="due-date">📅 Due: ${new Date(assignment.due_date).toLocaleDateString()}</span>
+                    <span class="difficulty ${assignment.difficulty}">📊 ${assignment.difficulty.toUpperCase()}</span>
+                </div>
+                <button onclick="downloadWork('${assignment.file_name}')" class="download-btn">
+                    Download Assignment
+                </button>
+            `;
+            schoolworkList.appendChild(workCard);
+        });
+    } catch (error) {
+        console.error('Failed to load assignments:', error);
+        schoolworkList.innerHTML = `
+            <div class="welcome-message">
+                <p style="color: #ff6b6b; text-align: center; font-size: 18px;">
+                    ❌ Failed to load assignments. Please try again later.
+                </p>
+            </div>
+        `;
+    }
 }
