@@ -38,6 +38,20 @@
         <div class="upload-sections">
             <div class="upload-section">
                 <div class="section-header">
+                    <h2>👥 Create User Account</h2>
+                    <p>Create new user accounts for the platform</p>
+                </div>
+                <form class="upload-form" id="user-create-form">
+                    <input type="text" id="new-username" placeholder="Username" required>
+                    <input type="text" id="new-display-name" placeholder="Display Name" required>
+                    <input type="password" id="new-password" placeholder="Password" required>
+                    <textarea id="new-bio" placeholder="User Bio (optional)"></textarea>
+                    <button type="submit">Create User Account</button>
+                </form>
+            </div>
+
+            <div class="upload-section">
+                <div class="section-header">
                     <h2>🎮 Upload Games</h2>
                     <p>Add new games to the games section</p>
                 </div>
@@ -50,7 +64,9 @@
                     <button type="submit">Upload Game</button>
                 </form>
             </div>
+        </div>
 
+        <div class="upload-sections">
             <div class="upload-section">
                 <div class="section-header">
                     <h2>📚 Upload School Work</h2>
@@ -77,6 +93,16 @@
                     <input type="file" id="assignment-file" accept=".pdf,.docx,.doc" required>
                     <button type="submit">Upload Assignment</button>
                 </form>
+            </div>
+
+            <div class="upload-section">
+                <div class="section-header">
+                    <h2>👥 Manage Users</h2>
+                    <p>View and manage registered users</p>
+                </div>
+                <div id="users-list" class="management-list">
+                    <!-- Users will be loaded here -->
+                </div>
             </div>
         </div>
 
