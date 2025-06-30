@@ -13,20 +13,33 @@ document.addEventListener('DOMContentLoaded', function() {
     setupUploadForms();
 });
 
-function loadStatistics() {
-    const users = JSON.parse(localStorage.getItem('users')) || [];
-    const messages = JSON.parse(localStorage.getItem('foxKingChat_messages')) || [];
-    const games = JSON.parse(localStorage.getItem('uploadedGames')) || [];
-    const assignments = JSON.parse(localStorage.getItem('uploadedAssignments')) || [];
-    
-    document.getElementById('total-users').textContent = users.length;
-    document.getElementById('total-games').textContent = games.length;
-    document.getElementById('total-assignments').textContent = assignments.length;
-    document.getElementById('total-messages').textContent = messages.length;
-    
-    // Load management lists
-    loadGamesList();
-    loadAssignmentsList();
+async function loadStatistics() {
+    try {
+        const [users, games, assignments] = await Promise.all([
+            fetch('/api/users').then(r => r.json()),
+            fetch('/api/games').then(r => r.json()),
+            fetch('/api/schoolwork').then(r => r.json())
+        ]);
+        
+        document.getElementById('total-users').textContent = users.length;
+        document.getElementById('total-games').textContent = games.length;
+        document.getElementById('total-assignments').textContent = assignments.length;
+        
+        // For messages, we need to get from all rooms
+        const rooms = await fetch('/api/chat/rooms').then(r => r.json());
+        let totalMessages = 0;
+        for (const room of rooms) {
+            const messages = await fetch(`/api/chat/messages/${room.id}`).then(r => r.json());
+            totalMessages += messages.length;
+        }
+        document.getElementById('total-messages').textContent = totalMessages;
+        
+        // Load management lists
+        loadGamesList();
+        loadAssignmentsList();
+    } catch (error) {
+        console.error('Failed to load statistics:', error);
+    }
 }
 
 function setupUploadForms() {
@@ -43,7 +56,7 @@ function setupUploadForms() {
     });
 }
 
-function uploadGame() {
+async function uploadGame() {
     const title = document.getElementById('game-title').value;
     const description = document.getElementById('game-description').value;
     const gameUrl = document.getElementById('game-url').value;
@@ -55,40 +68,49 @@ function uploadGame() {
         return;
     }
 
-    // Extract filename from URL or use title
-    const fileName = gameUrl.split('/').pop() || title + '.apk';
-    
-    // Get existing games from localStorage
-    let games = JSON.parse(localStorage.getItem('uploadedGames')) || [];
-    
-    const newGame = {
-        id: Date.now(),
-        title: title,
-        description: description,
-        fileName: fileName,
-        downloadUrl: gameUrl,
-        rating: rating,
-        downloads: downloads,
-        uploadDate: new Date().toISOString()
-    };
-    
-    games.push(newGame);
-    localStorage.setItem('uploadedGames', JSON.stringify(games));
-    
-    // Add to upload history
-    addToUploadHistory('game', title);
-    
-    // Reset form
-    document.getElementById('game-upload-form').reset();
-    
-    showNotification('Game uploaded successfully! 🎮');
-    
-    // Update statistics
-    const currentCount = parseInt(document.getElementById('total-games').textContent);
-    document.getElementById('total-games').textContent = currentCount + 1;
+    try {
+        // Extract filename from URL or use title
+        const fileName = gameUrl.split('/').pop() || title + '.apk';
+        
+        const gameData = {
+            title: title,
+            description: description,
+            downloadUrl: gameUrl,
+            fileName: fileName,
+            rating: rating,
+            downloads: downloads,
+            category: 'action'
+        };
+
+        const response = await fetch('/api/games', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(gameData)
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to upload game');
+        }
+
+        // Add to upload history
+        addToUploadHistory('game', title);
+        
+        // Reset form
+        document.getElementById('game-upload-form').reset();
+        
+        showNotification('Game uploaded successfully! 🎮');
+        
+        // Update statistics
+        loadStatistics();
+    } catch (error) {
+        console.error('Error uploading game:', error);
+        showNotification('Failed to upload game. Please try again.', 'error');
+    }
 }
 
-function uploadSchoolWork() {
+async function uploadSchoolWork() {
     const subject = document.getElementById('subject-select').value;
     const title = document.getElementById('assignment-title').value;
     const description = document.getElementById('assignment-description').value;
@@ -101,37 +123,46 @@ function uploadSchoolWork() {
         return;
     }
 
-    // Simulate file upload
-    const fileName = file.name;
-    
-    // Get existing assignments from localStorage
-    let assignments = JSON.parse(localStorage.getItem('uploadedAssignments')) || [];
-    
-    const newAssignment = {
-        id: Date.now(),
-        subject: subject,
-        title: title,
-        description: description,
-        dueDate: dueDate,
-        difficulty: difficulty,
-        fileName: fileName,
-        uploadDate: new Date().toISOString()
-    };
-    
-    assignments.push(newAssignment);
-    localStorage.setItem('uploadedAssignments', JSON.stringify(assignments));
-    
-    // Add to upload history
-    addToUploadHistory('assignment', title);
-    
-    // Reset form
-    document.getElementById('schoolwork-upload-form').reset();
-    
-    showNotification('Assignment uploaded successfully! 📚');
-    
-    // Update statistics
-    const currentCount = parseInt(document.getElementById('total-assignments').textContent);
-    document.getElementById('total-assignments').textContent = currentCount + 1;
+    try {
+        // Simulate file upload (in real app, upload to cloud storage)
+        const fileName = file.name;
+        
+        const assignmentData = {
+            subject: subject,
+            title: title,
+            description: description,
+            dueDate: dueDate,
+            difficulty: difficulty,
+            fileName: fileName,
+            fileUrl: null // In real app, this would be the uploaded file URL
+        };
+
+        const response = await fetch('/api/schoolwork', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(assignmentData)
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to upload assignment');
+        }
+
+        // Add to upload history
+        addToUploadHistory('assignment', title);
+        
+        // Reset form
+        document.getElementById('schoolwork-upload-form').reset();
+        
+        showNotification('Assignment uploaded successfully! 📚');
+        
+        // Update statistics
+        loadStatistics();
+    } catch (error) {
+        console.error('Error uploading assignment:', error);
+        showNotification('Failed to upload assignment. Please try again.', 'error');
+    }
 }
 
 function addToUploadHistory(type, title) {
