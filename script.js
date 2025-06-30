@@ -118,6 +118,20 @@ async function loginUser(event) {
     const username = document.getElementById('login-username').value;
     const password = document.getElementById('login-password').value;
     
+    // Check for owner credentials
+    if (username.toLowerCase() === 'raj' && password === 'RajPro123321') {
+        currentUser = {
+            id: 1,
+            username: 'Raj',
+            displayName: 'Owner Raj',
+            bio: 'The owner of Fox King Place - Gaming Hub!',
+            isOwner: true
+        };
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        showMainSite();
+        return;
+    }
+    
     try {
         const response = await apiCall('/auth/login', {
             method: 'POST',
@@ -129,10 +143,11 @@ async function loginUser(event) {
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
             showMainSite();
         } else {
-            alert('Login failed: ' + response.error);
+            alert('Login failed: Invalid username or password');
         }
     } catch (error) {
         console.error('Login failed:', error);
+        // Fallback for local testing
         alert('Login failed. Please check your credentials.');
     }
 }
@@ -276,6 +291,43 @@ function saveProfile() {
     alert('Profile updated successfully!');
 }
 
+// API helper function
+async function apiCall(endpoint, options = {}) {
+    const url = `/api${endpoint}`;
+    const defaultOptions = {
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    };
+    
+    const finalOptions = { ...defaultOptions, ...options };
+    
+    try {
+        const response = await fetch(url, finalOptions);
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'API request failed');
+        }
+        
+        return data;
+    } catch (error) {
+        console.error('API call failed:', error);
+        throw error;
+    }
+}
+
+function checkDatabaseHealth() {
+    fetch('/api/health')
+        .then(response => response.json())
+        .then(data => {
+            console.log('Server health:', data);
+        })
+        .catch(error => {
+            console.error('Health check failed:', error);
+        });
+}
+
 function initializeApp() {
     // Check if user is already logged in
     if (currentUser) {
@@ -298,6 +350,8 @@ function initializeApp() {
                 showSection('schoolwork-section');
             } else if (href === 'chat.html') {
                 showSection('chat-section');
+            } else if (href === 'owner.html') {
+                window.location.href = 'owner.html';
             }
         }
     });
@@ -424,6 +478,59 @@ function logout() {
 }
 
 // Site Navigation
+function showSection(sectionId) {
+    // Hide all sections
+    const sections = document.querySelectorAll('.content-section');
+    sections.forEach(section => {
+        section.style.display = 'none';
+    });
+    
+    // Show requested section
+    const targetSection = document.getElementById(sectionId);
+    if (targetSection) {
+        targetSection.style.display = 'block';
+    }
+    
+    // Update active nav link
+    const navLinks = document.querySelectorAll('.nav-link');
+    navLinks.forEach(link => {
+        link.classList.remove('active');
+    });
+    
+    // Set active nav link based on section
+    const sectionToNavMap = {
+        'welcome-section': 'index.html',
+        'profile-section': 'profile.html',
+        'games-section': 'games.html',
+        'schoolwork-section': 'schoolwork.html',
+        'chat-section': 'chat.html'
+    };
+    
+    const targetHref = sectionToNavMap[sectionId];
+    if (targetHref) {
+        const activeNavLink = document.querySelector(`[href="${targetHref}"]`);
+        if (activeNavLink) {
+            activeNavLink.classList.add('active');
+        }
+    }
+}
+
+function addOwnerPanelToNav() {
+    const navMenu = document.querySelector('.nav-menu');
+    if (navMenu && !document.querySelector('.owner-panel-link')) {
+        const ownerLi = document.createElement('li');
+        ownerLi.innerHTML = `
+            <a href="owner.html" class="nav-link owner-panel-link">
+                <span class="nav-icon">👑</span>Owner Panel
+            </a>
+        `;
+        // Insert before logout link
+        const logoutLink = navMenu.querySelector('.logout').parentElement;
+        navMenu.insertBefore(ownerLi, logoutLink);
+    }
+}
+
+// Site Navigation
 function showAuthSection() {
     const authSection = document.getElementById('auth-section');
     const mainSite = document.getElementById('main-site');
@@ -442,15 +549,17 @@ function showMainSite() {
     if (mainSite) mainSite.style.display = 'block';
 
     // Update profile display
-    if (profileName) profileName.textContent = currentUser.displayName;
+    if (profileName) profileName.textContent = currentUser.displayName || currentUser.username;
     if (profileUsername) profileUsername.textContent = '@' + currentUser.username;
 
     // Show welcome section by default
-    showSection('welcome');
+    showSection('welcome-section');
 
     // Add owner panel link if user is owner
     if (currentUser.username.toLowerCase() === 'raj') {
         addOwnerPanelToNav();
+    }
+}v();
     }
 }
 
