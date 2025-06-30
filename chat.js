@@ -1,4 +1,3 @@
-
 class EnhancedChatSystem {
     constructor() {
         this.currentUser = null;
@@ -154,10 +153,10 @@ class EnhancedChatSystem {
     initializeUI() {
         // Initialize emoji picker
         this.initializeEmojiPicker();
-        
+
         // Update notification button
         this.updateNotificationButton();
-        
+
         // Set current room info
         this.updateRoomInfo();
     }
@@ -169,7 +168,7 @@ class EnhancedChatSystem {
     showEmojiCategory(category) {
         const grid = document.getElementById('emoji-grid');
         const categories = document.querySelectorAll('.emoji-category');
-        
+
         if (!grid) return;
 
         // Update active category button
@@ -218,11 +217,11 @@ class EnhancedChatSystem {
     updateTypingIndicator() {
         const indicator = document.getElementById('typing-indicator');
         const typingText = document.getElementById('typing-text');
-        
+
         if (!indicator || !typingText) return;
 
         const otherTypingUsers = Array.from(this.typingUsers).filter(user => user !== this.currentUser.username);
-        
+
         if (otherTypingUsers.length > 0) {
             let text = '';
             if (otherTypingUsers.length === 1) {
@@ -255,11 +254,11 @@ class EnhancedChatSystem {
 
         // Switch current room
         this.currentRoom = roomId;
-        
+
         // Update UI
         this.updateRoomInfo();
         this.renderMessages();
-        
+
         // Clear typing indicator
         this.typingUsers.clear();
         this.updateTypingIndicator();
@@ -270,11 +269,11 @@ class EnhancedChatSystem {
     updateRoomInfo() {
         const roomNameEl = document.getElementById('current-room-name');
         const roomDescEl = document.getElementById('room-description');
-        
+
         if (roomNameEl && this.chatRooms[this.currentRoom]) {
             roomNameEl.textContent = this.chatRooms[this.currentRoom].name;
         }
-        
+
         if (roomDescEl && this.chatRooms[this.currentRoom]) {
             roomDescEl.textContent = this.chatRooms[this.currentRoom].description;
         }
@@ -392,13 +391,13 @@ class EnhancedChatSystem {
     processMessageText(text) {
         // Process URLs, mentions, and emojis
         let processedText = this.escapeHtml(text);
-        
+
         // Make URLs clickable
         processedText = processedText.replace(
             /(https?:\/\/[^\s]+)/g, 
             '<a href="$1" target="_blank" style="color: #1DB954; text-decoration: underline;">$1</a>'
         );
-        
+
         // Highlight mentions
         processedText = processedText.replace(
             /@(\w+)/g, 
@@ -436,49 +435,60 @@ class EnhancedChatSystem {
         return div.innerHTML;
     }
 
-    async sendMessage() {
-        const input = document.getElementById('message-input');
-        if (!input || !this.currentUser) return;
+    async sendMessage(message, roomId = this.currentRoom) {
+        if (!message.trim() || !this.currentUser) return;
 
-        const text = input.value.trim();
-        if (!text) return;
+        try {
+            const messageData = {
+                roomId: roomId,
+                userId: this.currentUser.id,
+                message: message.trim()
+            };
 
-        if (text.length > 500) {
-            this.showNotification('Message too long. Maximum 500 characters.', 'error');
-            return;
-        }
+            const response = await fetch('/api/chat/messages', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(messageData)
+            });
 
-        const message = {
-            id: Date.now() + Math.random(),
-            author: this.currentUser.username,
-            text: text,
-            time: new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}),
-            timestamp: Date.now(),
-            type: 'text'
-        };
+            if (!response.ok) {
+                throw new Error('Failed to send message');
+            }
 
-        // Add to current room
-        if (!this.chatRooms[this.currentRoom]) {
-            this.chatRooms[this.currentRoom] = { messages: [] };
-        }
-        
-        this.chatRooms[this.currentRoom].messages.push(message);
+            const sentMessage = await response.json();
 
-        // Clear input and typing
-        input.value = '';
-        this.typingUsers.delete(this.currentUser.username);
-        this.updateTypingIndicator();
+            // Add user info to message
+            sentMessage.username = this.currentUser.username;
+            sentMessage.display_name = this.currentUser.displayName || this.currentUser.username;
 
-        // Save and update UI
-        this.saveRooms();
-        this.renderMessages();
-        
-        // Show status
-        this.showMessageStatus('Message sent');
+            // Add to local messages
+            this.messages.push({
+                id: sentMessage.id,
+                user: sentMessage.username,
+                displayName: sentMessage.display_name,
+                message: sentMessage.message,
+                timestamp: sentMessage.created_at,
+                roomId: sentMessage.room_id
+            });
 
-        // Play sound notification for others
-        if (this.notificationsEnabled) {
-            this.playNotificationSound();
+            // Update UI
+            this.renderMessages();
+            this.scrollToBottom();
+
+            // Clear input
+            const messageInput = document.getElementById('message-input');
+            if (messageInput) {
+                messageInput.value = '';
+            }
+
+            this.showTypingIndicator(false);
+
+            return sentMessage;
+        } catch (error) {
+            console.error('Failed to send message:', error);
+            this.showNotification('Failed to send message', 'error');
         }
     }
 
@@ -499,22 +509,22 @@ class EnhancedChatSystem {
         if (!this.chatRooms[this.currentRoom]) {
             this.chatRooms[this.currentRoom] = { messages: [] };
         }
-        
+
         this.chatRooms[this.currentRoom].messages.push(message);
         this.saveRooms();
         this.renderMessages();
-        
+
         this.showMessageStatus('File shared');
     }
 
     updateOnlineUsersDisplay() {
         const userList = document.getElementById('online-users-list');
         const onlineCount = document.getElementById('online-count');
-        
+
         if (!userList) return;
 
         userList.innerHTML = '';
-        
+
         const onlineArray = Array.from(this.onlineUsers);
         if (onlineCount) {
             onlineCount.textContent = onlineArray.length;
@@ -523,10 +533,10 @@ class EnhancedChatSystem {
         onlineArray.forEach(username => {
             const userEl = document.createElement('div');
             userEl.className = 'user-item';
-            
+
             const avatar = this.getUserAvatar(username);
             const isCurrentUser = username === this.currentUser?.username;
-            
+
             userEl.innerHTML = `
                 <div class="user-avatar">${avatar}</div>
                 <span class="user-name">${this.escapeHtml(username)}${isCurrentUser ? ' (You)' : ''}</span>
@@ -539,15 +549,15 @@ class EnhancedChatSystem {
     startRealTimeUpdates() {
         this.messageUpdateInterval = setInterval(() => {
             this.loadStoredData();
-            
+
             // Check for new messages
             const currentRoom = this.chatRooms[this.currentRoom];
             const displayedMessages = document.querySelectorAll('.message[data-message-id]').length;
-            
+
             if (currentRoom && currentRoom.messages.length !== displayedMessages) {
                 this.renderMessages();
             }
-            
+
             this.updateOnlineUsersDisplay();
         }, 2000);
     }
@@ -565,7 +575,7 @@ class EnhancedChatSystem {
         this.notificationsEnabled = !this.notificationsEnabled;
         localStorage.setItem('foxKingChat_notifications', JSON.stringify(this.notificationsEnabled));
         this.updateNotificationButton();
-        
+
         const status = this.notificationsEnabled ? 'enabled' : 'disabled';
         this.showNotification(`Notifications ${status}`, 'info');
     }
@@ -589,7 +599,7 @@ class EnhancedChatSystem {
         }
     }
 
-    
+
 
     toggleVoiceRecording() {
         const btn = document.getElementById('voice-btn');
@@ -609,9 +619,9 @@ class EnhancedChatSystem {
         btn.classList.add('recording');
         btn.textContent = '⏹️';
         btn.title = 'Stop Recording';
-        
+
         this.showMessageStatus('Recording voice message...');
-        
+
         // Auto-stop after 10 seconds (demo)
         setTimeout(() => {
             if (this.isVoiceRecording) {
@@ -627,7 +637,7 @@ class EnhancedChatSystem {
         btn.classList.remove('recording');
         btn.textContent = '🎤';
         btn.title = 'Voice Message';
-        
+
         this.showMessageStatus('Voice recording stopped');
         this.showNotification('Voice messages not yet implemented', 'info');
     }
@@ -659,18 +669,18 @@ class EnhancedChatSystem {
             max-width: 300px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         `;
-        
+
         const colors = {
             success: 'linear-gradient(135deg, #1DB954 0%, #1ed760 100%)',
             error: 'linear-gradient(135deg, #FF5E5E 0%, #FF8A80 100%)',
             info: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
         };
-        
+
         notification.style.background = colors[type] || colors.info;
         notification.textContent = message;
-        
+
         document.body.appendChild(notification);
-        
+
         setTimeout(() => {
             notification.style.animation = 'slideOutRight 0.3s ease';
             setTimeout(() => {
@@ -685,14 +695,14 @@ class EnhancedChatSystem {
             const audioContext = new (window.AudioContext || window.webkitAudioContext)();
             const oscillator = audioContext.createOscillator();
             const gainNode = audioContext.createGain();
-            
+
             oscillator.connect(gainNode);
             gainNode.connect(audioContext.destination);
-            
+
             oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
             gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-            
+
             oscillator.start(audioContext.currentTime);
             oscillator.stop(audioContext.currentTime + 0.3);
         } catch (error) {
@@ -790,7 +800,7 @@ function downloadSharedFile(fileData, fileName) {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        
+
         if (window.chatSystem) {
             window.chatSystem.showNotification(`Downloaded ${fileName}`, 'success');
         }
@@ -820,7 +830,7 @@ style.textContent = `
             transform: translateX(0);
         }
     }
-    
+
     @keyframes slideOutRight {
         from {
             opacity: 1;
