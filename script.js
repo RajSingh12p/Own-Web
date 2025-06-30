@@ -30,95 +30,14 @@ async function apiCall(endpoint, options = {}) {
     }
 }
 
-// Database functions
-async function checkDatabaseHealth() {
-    try {
-        const health = await apiCall('/health');
-        console.log('Database status:', health);
-        return health.database.connected;
-    } catch (error) {
-        console.error('Database health check failed:', error);
-        return false;
-    }
-}
-
-async function loadUsersFromDB() {
-    try {
-        const users = await apiCall('/users');
-        return users;
-    } catch (error) {
-        console.error('Failed to load users from database:', error);
-        return [];
-    }
-}
-
-async function saveUserToDB(userData) {
-    try {
-        const user = await apiCall('/users', {
-            method: 'POST',
-            body: JSON.stringify(userData)
-        });
-        return user;
-    } catch (error) {
-        console.error('Failed to save user to database:', error);
-        throw error;
-    }
-}
-
-async function loadGamesFromDB() {
-    try {
-        const games = await apiCall('/games');
-        return games;
-    } catch (error) {
-        console.error('Failed to load games from database:', error);
-        return [];
-    }
-}
-
-async function saveGameToDB(gameData) {
-    try {
-        const game = await apiCall('/games', {
-            method: 'POST',
-            body: JSON.stringify(gameData)
-        });
-        return game;
-    } catch (error) {
-        console.error('Failed to save game to database:', error);
-        throw error;
-    }
-}
-
-async function loadAssignmentsFromDB() {
-    try {
-        const assignments = await apiCall('/schoolwork');
-        return assignments;
-    } catch (error) {
-        console.error('Failed to load assignments from database:', error);
-        return [];
-    }
-}
-
-async function saveAssignmentToDB(assignmentData) {
-    try {
-        const assignment = await apiCall('/schoolwork', {
-            method: 'POST',
-            body: JSON.stringify(assignmentData)
-        });
-        return assignment;
-    } catch (error) {
-        console.error('Failed to save assignment to database:', error);
-        throw error;
-    }
-}
-
 // Authentication functions
 async function loginUser(event) {
     event.preventDefault();
-    
+
     const username = document.getElementById('login-username').value;
     const password = document.getElementById('login-password').value;
-    
-    // Check for owner credentials
+
+    // Check for owner credentials first
     if (username.toLowerCase() === 'raj' && password === 'RajPro123321') {
         currentUser = {
             id: 1,
@@ -131,13 +50,14 @@ async function loginUser(event) {
         showMainSite();
         return;
     }
-    
+
     try {
+        // Try API login first
         const response = await apiCall('/auth/login', {
             method: 'POST',
             body: JSON.stringify({ username, password })
         });
-        
+
         if (response.success) {
             currentUser = response.user;
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
@@ -146,12 +66,12 @@ async function loginUser(event) {
             alert('Login failed: Invalid username or password');
         }
     } catch (error) {
-        console.error('Login failed:', error);
-        
-        // Fallback to local storage for testing
-        const users = JSON.parse(localStorage.getItem('users')) || [];
-        const user = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
-        
+        console.error('API login failed, trying local storage:', error);
+
+        // Fallback to local storage
+        const localUsers = JSON.parse(localStorage.getItem('users')) || [];
+        const user = localUsers.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
+
         if (user) {
             currentUser = {
                 id: user.id,
@@ -173,20 +93,47 @@ function showMainSite() {
     document.getElementById('main-site').style.display = 'block';
     showSection('welcome-section');
     updateProfileInfo();
+
+    // Add owner panel link if user is owner
+    if (currentUser && currentUser.isOwner) {
+        addOwnerPanelToNav();
+    }
+}
+
+function showAuthSection() {
+    document.getElementById('auth-section').style.display = 'flex';
+    document.getElementById('main-site').style.display = 'none';
 }
 
 function showSection(sectionId) {
     // Hide all sections
     const sections = document.querySelectorAll('.content-section');
     sections.forEach(section => section.style.display = 'none');
-    
+
     // Show selected section
     document.getElementById(sectionId).style.display = 'block';
-    
+
     // Update navigation
     const navLinks = document.querySelectorAll('.nav-link');
     navLinks.forEach(link => link.classList.remove('active'));
-    
+
+    // Set active nav link
+    const sectionToNavMap = {
+        'welcome-section': 'index.html',
+        'profile-section': 'profile.html',
+        'games-section': 'games.html',
+        'schoolwork-section': 'schoolwork.html',
+        'chat-section': 'chat.html'
+    };
+
+    const targetHref = sectionToNavMap[sectionId];
+    if (targetHref) {
+        const activeNavLink = document.querySelector(`[href="${targetHref}"]`);
+        if (activeNavLink) {
+            activeNavLink.classList.add('active');
+        }
+    }
+
     // Load section-specific data
     switch(sectionId) {
         case 'games-section':
@@ -200,16 +147,57 @@ function showSection(sectionId) {
 
 function updateProfileInfo() {
     if (currentUser) {
-        document.getElementById('profile-name').textContent = currentUser.displayName || currentUser.username;
-        document.getElementById('profile-username').textContent = '@' + currentUser.username;
+        const profileName = document.getElementById('profile-name');
+        const profileUsername = document.getElementById('profile-username');
+
+        if (profileName) profileName.textContent = currentUser.displayName || currentUser.username;
+        if (profileUsername) profileUsername.textContent = '@' + currentUser.username;
+    }
+}
+
+function addOwnerPanelToNav() {
+    const navMenu = document.querySelector('.nav-menu');
+    if (navMenu && !document.querySelector('.owner-panel-link')) {
+        const ownerLi = document.createElement('li');
+        ownerLi.innerHTML = `
+            <a href="owner.html" class="nav-link owner-panel-link">
+                <span class="nav-icon">👑</span>Owner Panel
+            </a>
+        `;
+        // Insert before logout link
+        const logoutLink = navMenu.querySelector('.logout').parentElement;
+        navMenu.insertBefore(ownerLi, logoutLink);
+    }
+}
+
+// Database functions
+async function loadGamesFromDB() {
+    try {
+        const games = await apiCall('/games');
+        return games;
+    } catch (error) {
+        console.error('Failed to load games from database:', error);
+        return [];
+    }
+}
+
+async function loadAssignmentsFromDB() {
+    try {
+        const assignments = await apiCall('/schoolwork');
+        return assignments;
+    } catch (error) {
+        console.error('Failed to load assignments from database:', error);
+        return [];
     }
 }
 
 async function loadGames() {
+    const gamesList = document.getElementById('games-list');
+    if (!gamesList) return;
+
     try {
         const games = await loadGamesFromDB();
-        const gamesList = document.getElementById('games-list');
-        
+
         if (games.length === 0) {
             gamesList.innerHTML = `
                 <div class="welcome-message">
@@ -218,25 +206,35 @@ async function loadGames() {
                     </p>
                 </div>
             `;
-        } else {
-            gamesList.innerHTML = games.map(game => `
-                <div class="game-card">
-                    <h3>${game.title}</h3>
-                    <p>${game.description}</p>
-                    <a href="${game.download_url}" download="${game.file_name}" class="download-btn">Download</a>
-                </div>
-            `).join('');
+            return;
         }
+
+        gamesList.innerHTML = games.map(game => `
+            <div class="game-card">
+                <h3>${game.title}</h3>
+                <p>${game.description}</p>
+                <a href="${game.download_url}" download="${game.file_name}" class="download-btn">Download</a>
+            </div>
+        `).join('');
     } catch (error) {
         console.error('Failed to load games:', error);
+        gamesList.innerHTML = `
+            <div class="welcome-message">
+                <p style="color: #ff6b6b; text-align: center; font-size: 18px;">
+                    ❌ Failed to load games. Please try again later.
+                </p>
+            </div>
+        `;
     }
 }
 
 async function loadSchoolWork() {
+    const schoolworkList = document.getElementById('schoolwork-list');
+    if (!schoolworkList) return;
+
     try {
         const assignments = await loadAssignmentsFromDB();
-        const schoolworkList = document.getElementById('schoolwork-list');
-        
+
         if (assignments.length === 0) {
             schoolworkList.innerHTML = `
                 <div class="welcome-message">
@@ -245,35 +243,75 @@ async function loadSchoolWork() {
                     </p>
                 </div>
             `;
-        } else {
-            schoolworkList.innerHTML = assignments.map(assignment => `
-                <div class="assignment-card">
-                    <h3>${assignment.title}</h3>
-                    <p><strong>Subject:</strong> ${assignment.subject}</p>
-                    <p>${assignment.description}</p>
-                    ${assignment.due_date ? `<p><strong>Due:</strong> ${new Date(assignment.due_date).toLocaleDateString()}</p>` : ''}
-                    ${assignment.file_url ? `<a href="${assignment.file_url}" download class="download-btn">Download</a>` : ''}
-                </div>
-            `).join('');
+            return;
         }
+
+        schoolworkList.innerHTML = assignments.map(assignment => `
+            <div class="assignment-card">
+                <h3>${assignment.title}</h3>
+                <p><strong>Subject:</strong> ${assignment.subject}</p>
+                <p>${assignment.description}</p>
+                ${assignment.due_date ? `<p><strong>Due:</strong> ${new Date(assignment.due_date).toLocaleDateString()}</p>` : ''}
+                ${assignment.file_url ? `<a href="${assignment.file_url}" download class="download-btn">Download</a>` : ''}
+            </div>
+        `).join('');
     } catch (error) {
         console.error('Failed to load school work:', error);
+        schoolworkList.innerHTML = `
+            <div class="welcome-message">
+                <p style="color: #ff6b6b; text-align: center; font-size: 18px;">
+                    ❌ Failed to load assignments. Please try again later.
+                </p>
+            </div>
+        `;
     }
+}
+
+// Profile management
+function editProfile() {
+    const profileEdit = document.getElementById('profile-edit');
+    const editName = document.getElementById('edit-name');
+    const editBio = document.getElementById('edit-bio');
+
+    if (profileEdit) profileEdit.style.display = 'block';
+    if (editName) editName.value = currentUser.displayName || currentUser.username;
+    if (editBio) editBio.value = currentUser.bio || '';
+}
+
+function saveProfile() {
+    const newName = document.getElementById('edit-name').value;
+    const newBio = document.getElementById('edit-bio').value;
+
+    currentUser.displayName = newName;
+    currentUser.bio = newBio;
+    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+    updateProfileInfo();
+    cancelEdit();
+    alert('Profile updated successfully!');
+}
+
+function cancelEdit() {
+    const profileEdit = document.getElementById('profile-edit');
+    if (profileEdit) profileEdit.style.display = 'none';
 }
 
 function logout() {
     currentUser = null;
     localStorage.removeItem('currentUser');
-    document.getElementById('main-site').style.display = 'none';
-    document.getElementById('auth-section').style.display = 'block';
+    showAuthSection();
 }
 
+// Music control
 function toggleMusic() {
     const music = document.getElementById('background-music');
     const button = document.getElementById('music-toggle');
-    
+
+    if (!music || !button) return;
+
     if (music.muted) {
         music.muted = false;
+        music.play().catch(e => console.log('Audio play failed:', e));
         button.textContent = '🔊';
         button.title = 'Mute Music';
     } else {
@@ -283,79 +321,13 @@ function toggleMusic() {
     }
 }
 
-function editProfile() {
-    document.getElementById('profile-edit').style.display = 'block';
-    document.getElementById('edit-name').value = currentUser.displayName || currentUser.username;
-    document.getElementById('edit-bio').value = currentUser.bio || '';
-}
-
-function cancelEdit() {
-    document.getElementById('profile-edit').style.display = 'none';
-}
-
-function saveProfile() {
-    const newName = document.getElementById('edit-name').value;
-    const newBio = document.getElementById('edit-bio').value;
-    
-    // Update local user data
-    currentUser.displayName = newName;
-    currentUser.bio = newBio;
-    localStorage.setItem('currentUser', JSON.stringify(currentUser));
-    
-    updateProfileInfo();
-    cancelEdit();
-    alert('Profile updated successfully!');
-}
-
-// API helper function
-async function apiCall(endpoint, options = {}) {
-    const url = `/api${endpoint}`;
-    const defaultOptions = {
-        headers: {
-            'Content-Type': 'application/json',
-        },
-    };
-    
-    const finalOptions = { ...defaultOptions, ...options };
-    
-    try {
-        const response = await fetch(url, finalOptions);
-        const data = await response.json();
-        
-        if (!response.ok) {
-            throw new Error(data.error || 'API request failed');
-        }
-        
-        return data;
-    } catch (error) {
-        console.error('API call failed:', error);
-        throw error;
-    }
-}
-
-function checkDatabaseHealth() {
-    fetch('/api/health')
-        .then(response => response.json())
-        .then(data => {
-            console.log('Server health:', data);
-        })
-        .catch(error => {
-            console.error('Health check failed:', error);
-        });
-}
-
-function initializeApp() {
-    // Check if user is already logged in
-    if (currentUser) {
-        showMainSite();
-    }
-    
-    // Set up navigation
+// Navigation setup
+function setupNavigation() {
     document.addEventListener('click', function(e) {
         if (e.target.matches('.nav-link')) {
             e.preventDefault();
             const href = e.target.getAttribute('href');
-            
+
             if (href === 'index.html') {
                 showSection('welcome-section');
             } else if (href === 'profile.html') {
@@ -374,19 +346,28 @@ function initializeApp() {
 }
 
 // Initialize the app
+function initializeApp() {
+    // Check if user is already logged in
+    if (currentUser) {
+        showMainSite();
+    } else {
+        showAuthSection();
+    }
+
+    setupNavigation();
+}
+
+// Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     initializeApp();
-    checkDatabaseHealth();
 });
 
-// User data storage (fallback for local development)
-let users = JSON.parse(localStorage.getItem('users')) || [];
-let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
+// User data storage (fallback for local development) - Removed redundant declaration
+
 function getUserIP() {
     return 'user_' + Math.random().toString(36).substr(2, 9); // Simulated IP
 }
 
-// Authentication Functions
 function showLogin() {
     document.getElementById('login-form').style.display = 'block';
     document.getElementById('register-form').style.display = 'none';
@@ -464,224 +445,27 @@ function registerUser(event) {
     }
 }
 
+// API helper function - removed redundant definition
 
-
-function logout() {
-    currentUser = null;
-    localStorage.removeItem('currentUser');
-    showAuthSection();
+function checkDatabaseHealth() {
+    fetch('/api/health')
+        .then(response => response.json())
+        .then(data => {
+            console.log('Server health:', data);
+        })
+        .catch(error => {
+            console.error('Health check failed:', error);
+        });
 }
 
-// Site Navigation
-function showSection(sectionId) {
-    // Hide all sections
-    const sections = document.querySelectorAll('.content-section');
-    sections.forEach(section => {
-        section.style.display = 'none';
-    });
-    
-    // Show requested section
-    const targetSection = document.getElementById(sectionId);
-    if (targetSection) {
-        targetSection.style.display = 'block';
-    }
-    
-    // Update active nav link
-    const navLinks = document.querySelectorAll('.nav-link');
-    navLinks.forEach(link => {
-        link.classList.remove('active');
-    });
-    
-    // Set active nav link based on section
-    const sectionToNavMap = {
-        'welcome-section': 'index.html',
-        'profile-section': 'profile.html',
-        'games-section': 'games.html',
-        'schoolwork-section': 'schoolwork.html',
-        'chat-section': 'chat.html'
-    };
-    
-    const targetHref = sectionToNavMap[sectionId];
-    if (targetHref) {
-        const activeNavLink = document.querySelector(`[href="${targetHref}"]`);
-        if (activeNavLink) {
-            activeNavLink.classList.add('active');
-        }
-    }
-}
+// Initialize the app - removed redundant definition
 
-function addOwnerPanelToNav() {
-    const navMenu = document.querySelector('.nav-menu');
-    if (navMenu && !document.querySelector('.owner-panel-link')) {
-        const ownerLi = document.createElement('li');
-        ownerLi.innerHTML = `
-            <a href="owner.html" class="nav-link owner-panel-link">
-                <span class="nav-icon">👑</span>Owner Panel
-            </a>
-        `;
-        // Insert before logout link
-        const logoutLink = navMenu.querySelector('.logout').parentElement;
-        navMenu.insertBefore(ownerLi, logoutLink);
-    }
-}
-
-// Site Navigation
-function showAuthSection() {
-    const authSection = document.getElementById('auth-section');
-    const mainSite = document.getElementById('main-site');
-
-    if (authSection) authSection.style.display = 'flex';
-    if (mainSite) mainSite.style.display = 'none';
-}
-
-
-
-function showSection(sectionName) {
-    // Hide all sections
-    const sections = document.querySelectorAll('.content-section');
-    sections.forEach(section => section.style.display = 'none');
-
-    // Show selected section
-    const targetSection = document.getElementById(sectionName + '-section');
-    if (targetSection) {
-        targetSection.style.display = 'block';
-    }
-
-    // Update navigation active state
-    const navLinks = document.querySelectorAll('.nav-link');
-    navLinks.forEach(link => link.classList.remove('active'));
-
-    // Find and activate the corresponding nav link
-    const activeLink = document.querySelector(`[onclick="showSection('${sectionName}')"]`);
-    if (activeLink) {
-        activeLink.classList.add('active');
-    }
-}
-
-// Profile Management
-function editProfile() {
-    const profileEdit = document.getElementById('profile-edit');
-    const editName = document.getElementById('edit-name');
-    const editBio = document.getElementById('edit-bio');
-
-    if (profileEdit) profileEdit.style.display = 'block';
-    if (editName) editName.value = currentUser.displayName;
-    if (editBio) editBio.value = currentUser.bio;
-}
-
-function saveProfile() {
-    const newName = document.getElementById('edit-name').value;
-    const newBio = document.getElementById('edit-bio').value;
-
-    // Update current user
-    currentUser.displayName = newName;
-    currentUser.bio = newBio;
-
-    // Update in users array
-    const userIndex = users.findIndex(u => u.id === currentUser.id);
-    if (userIndex !== -1) {
-        users[userIndex] = currentUser;
-        localStorage.setItem('users', JSON.stringify(users));
-        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-    }
-
-    // Update display
-    document.getElementById('profile-name').textContent = currentUser.displayName;
-
-    cancelEdit();
-    alert('Profile updated successfully!');
-}
-
-function cancelEdit() {
-    const profileEdit = document.getElementById('profile-edit');
-    if (profileEdit) profileEdit.style.display = 'none';
-}
-
-// Games Download
-function downloadGame(filename) {
-    // In a real app, this would trigger actual file download
-    alert('Downloading ' + filename + '...\nNote: This is a demo. In a real app, the file would download.');
-
-    // Simulate download
-    console.log('Download started for:', filename);
-}
-
-// School Work Download
-function downloadWork(filename) {
-    // In a real app, this would trigger actual file download
-    alert('Downloading ' + filename + '...\nNote: This is a demo. In a real app, the file would download.');
-
-    // Simulate download
-    console.log('Download started for:', filename);
-}
-
-// Chat functionality is now handled in chat.js for the dedicated chat page
-
-// Add owner panel link to navigation for owner
-function addOwnerPanelToNav() {
-    const navMenu = document.querySelector('.nav-menu');
-    const logoutLink = navMenu.querySelector('.logout').parentElement;
-
-    // Check if owner panel link already exists
-    if (!navMenu.querySelector('.owner-panel-link')) {
-        const ownerPanelItem = document.createElement('li');
-        ownerPanelItem.innerHTML = `
-            <a href="owner.html" class="nav-link owner-panel-link">
-                <span class="nav-icon">👑</span>Owner Panel
-            </a>
-        `;
-        navMenu.insertBefore(ownerPanelItem, logoutLink);
-    }
-}
+// Add owner panel link to navigation for owner - removed redundant definition
 
 // Music control functionality
 let isMusicPlaying = false;
 
-function toggleMusic() {
-    const music = document.getElementById('background-music');
-    const musicToggle = document.getElementById('music-toggle');
-
-    if (!music) return;
-
-    if (isMusicPlaying) {
-        music.pause();
-        music.muted = true;
-        musicToggle.textContent = '🔇';
-        musicToggle.title = 'Unmute Music';
-        isMusicPlaying = false;
-    } else {
-        music.muted = false;
-        music.play().catch(e => {
-            console.log('Audio play failed:', e);
-            // Create a simple tone using Web Audio API as fallback
-            playTone();
-        });
-        musicToggle.textContent = '🔊';
-        musicToggle.title = 'Mute Music';
-        isMusicPlaying = true;
-    }
-}
-
-// Fallback audio using Web Audio API
-function playTone() {
-    try {
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-
-        oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
-        oscillator.type = 'sine';
-        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-
-        oscillator.start();
-        oscillator.stop(audioContext.currentTime + 2);
-    } catch (e) {
-        console.log('Web Audio API not supported:', e);
-    }
-}
+// Fallback audio using Web Audio API - removed redundant definition
 
 // Initialize media files and profile icons
 document.addEventListener('DOMContentLoaded', function() {
@@ -786,102 +570,21 @@ function addSchoolWork(title, description, filename) {
     workList.appendChild(workDiv);
 }
 
-async function loadGames() {
-    const gamesList = document.getElementById('games-list');
-    if (!gamesList) return;
+// Music control - re-inserting the function from original
+function toggleMusic() {
+    const music = document.getElementById('background-music');
+    const button = document.getElementById('music-toggle');
 
-    try {
-        const games = await loadGamesFromDB();
+    if (!music || !button) return;
 
-        if (games.length === 0) {
-            gamesList.innerHTML = `
-                <div class="welcome-message">
-                    <p style="color: #666; text-align: center; font-size: 18px;">
-                        🎮 No games available yet. Games will appear here when uploaded by the owner.
-                    </p>
-                </div>
-            `;
-            return;
-        }
-
-        gamesList.innerHTML = '';
-
-        games.forEach(game => {
-            const gameCard = document.createElement('div');
-            gameCard.className = 'game-card';
-            gameCard.innerHTML = `
-                <div class="game-icon">🎮</div>
-                <h3>${game.title}</h3>
-                <p>${game.description}</p>
-                <div class="game-stats">
-                    <span>⭐ ${game.rating}</span>
-                    <span>📥 ${game.downloads}</span>
-                </div>
-                <button onclick="downloadGame('${game.download_url}', '${game.file_name}')" class="download-btn">
-                    Download Game
-                </button>
-            `;
-            gamesList.appendChild(gameCard);
-        });
-    } catch (error) {
-        console.error('Failed to load games:', error);
-        gamesList.innerHTML = `
-            <div class="welcome-message">
-                <p style="color: #ff6b6b; text-align: center; font-size: 18px;">
-                    ❌ Failed to load games. Please try again later.
-                </p>
-            </div>
-        `;
-    }
-}
-
-async function loadSchoolWork() {
-    const schoolworkList = document.getElementById('schoolwork-list');
-    if (!schoolworkList) return;
-
-    try {
-        const assignments = await loadAssignmentsFromDB();
-
-        if (assignments.length === 0) {
-            schoolworkList.innerHTML = `
-                <div class="welcome-message">
-                    <p style="color: #666; text-align: center; font-size: 18px;">
-                        📚 No assignments available yet. School work will appear here when uploaded by the owner.
-                    </p>
-                </div>
-            `;
-            return;
-        }
-
-        schoolworkList.innerHTML = '';
-
-        assignments.forEach(assignment => {
-            const workCard = document.createElement('div');
-            workCard.className = 'work-card';
-            workCard.innerHTML = `
-                <div class="work-header">
-                    <h3>${assignment.title}</h3>
-                    <span class="subject-tag ${assignment.subject}">${assignment.subject.toUpperCase()}</span>
-                </div>
-                <p>${assignment.description}</p>
-                <div class="work-meta">
-                    <span class="due-date">📅 Due: ${new Date(assignment.due_date).toLocaleDateString()}</span>
-                    <span class="difficulty ${assignment.difficulty}">📊 ${assignment.difficulty.toUpperCase()}</span>
-                </div>
-                <button onclick="downloadWork('${assignment.file_name}')" class="download-btn">
-                    Download Assignment
-                </button>
-            `;
-            schoolworkList.appendChild(workCard);
-        });
-    } catch (error) {
-        console.error('Failed to load assignments:', error);
-        schoolworkList.innerHTML = `
-            <div class="welcome-message">
-                <p style="color: #ff6b6b; text-align: center; font-size: 18px;">
-                    ❌ Failed to load assignments. Please try again later.
-                </p>
-            </div>
-        `;
+    if (music.muted) {
+        music.muted = false;
+        music.play().catch(e => console.log('Audio play failed:', e));
+        button.textContent = '🔊';
+        button.title = 'Mute Music';
+    } else {
+        music.muted = true;
+        button.textContent = '🔇';
+        button.title = 'Unmute Music';
     }
 }
