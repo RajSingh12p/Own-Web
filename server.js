@@ -15,6 +15,9 @@ app.use(express.static('.'));
 const DATABASE_URL = process.env.NETLIFY_DATABASE_URL || process.env.DATABASE_URL;
 const DATABASE_URL_UNPOOLED = process.env.NETLIFY_DATABASE_URL_UNPOOLED;
 
+// Check if database URLs are available
+const hasDatabaseConfig = DATABASE_URL || DATABASE_URL_UNPOOLED;
+
 const { Pool } = require('pg');
 
 // Database connection class
@@ -26,6 +29,11 @@ class Database {
     }
 
     async connect() {
+        if (!this.connectionString && !this.unpooledConnection) {
+            console.log('No database configuration found. Running in local mode.');
+            return;
+        }
+        
         console.log('Connecting to database...');
         try {
             // Use unpooled connection if available, otherwise fall back to pooled
@@ -56,6 +64,10 @@ class Database {
     }
 
     async query(sql, params = []) {
+        if (!this.pool) {
+            throw new Error('Database not connected. Please set up your database environment variables.');
+        }
+        
         console.log('Executing query:', sql, params);
         try {
             const result = await this.pool.query(sql, params);
