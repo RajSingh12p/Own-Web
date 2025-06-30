@@ -37,12 +37,19 @@ async function loadStatistics() {
         // Load management lists
         loadGamesList();
         loadAssignmentsList();
+        loadUsersList();
     } catch (error) {
         console.error('Failed to load statistics:', error);
     }
 }
 
 function setupUploadForms() {
+    // User creation form
+    document.getElementById('user-create-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        createUser();
+    });
+
     // Game upload form
     document.getElementById('game-upload-form').addEventListener('submit', function(e) {
         e.preventDefault();
@@ -280,6 +287,151 @@ function removeAssignment(assignmentId) {
         loadAssignmentsList();
         loadStatistics();
         showNotification('Assignment removed successfully! 🗑️');
+    }
+}
+
+async function createUser() {
+    const username = document.getElementById('new-username').value;
+    const displayName = document.getElementById('new-display-name').value;
+    const password = document.getElementById('new-password').value;
+    const bio = document.getElementById('new-bio').value;
+
+    if (!username || !displayName || !password) {
+        alert('Username, display name, and password are required!');
+        return;
+    }
+
+    try {
+        // First try to create via API
+        const userData = {
+            username: username,
+            displayName: displayName,
+            password: password,
+            bio: bio || 'Welcome to my gaming profile!'
+        };
+
+        const response = await fetch('/api/users', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(userData)
+        });
+
+        if (response.ok) {
+            showNotification('User account created successfully! 👤');
+        } else {
+            throw new Error('API creation failed');
+        }
+    } catch (error) {
+        console.error('API user creation failed, using localStorage:', error);
+        
+        // Fallback to localStorage
+        let users = JSON.parse(localStorage.getItem('users')) || [];
+        
+        // Check if username already exists
+        if (users.find(u => u.username.toLowerCase() === username.toLowerCase())) {
+            alert('Username already exists!');
+            return;
+        }
+
+        const newUser = {
+            id: Date.now(),
+            username: username,
+            displayName: displayName,
+            password: password,
+            bio: bio || 'Welcome to my gaming profile!',
+            registrationDate: new Date().toISOString()
+        };
+
+        users.push(newUser);
+        localStorage.setItem('users', JSON.stringify(users));
+        
+        showNotification('User account created successfully! 👤');
+    }
+
+    // Add to upload history
+    addToUploadHistory('user', displayName);
+    
+    // Reset form
+    document.getElementById('user-create-form').reset();
+    
+    // Update statistics and user list
+    loadStatistics();
+    loadUsersList();
+}
+
+async function loadUsersList() {
+    try {
+        let users = [];
+        
+        // Try to load from API first
+        try {
+            const response = await fetch('/api/users');
+            if (response.ok) {
+                users = await response.json();
+            }
+        } catch (error) {
+            // Fallback to localStorage
+            users = JSON.parse(localStorage.getItem('users')) || [];
+        }
+
+        const usersListContainer = document.getElementById('users-list');
+        if (!usersListContainer) return;
+
+        usersListContainer.innerHTML = '<h3>Registered Users</h3>';
+
+        if (users.length === 0) {
+            usersListContainer.innerHTML += '<p style="color: #666;">No users registered yet.</p>';
+            return;
+        }
+
+        users.forEach(user => {
+            const userItem = document.createElement('div');
+            userItem.className = 'management-item';
+            userItem.style.cssText = `
+                background: #1A1A1A;
+                border: 1px solid #2C2C2C;
+                border-radius: 12px;
+                padding: 15px;
+                margin: 10px 0;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            `;
+            
+            userItem.innerHTML = `
+                <div class="item-info">
+                    <h4 style="color: #1DB954; margin: 0 0 5px 0;">${user.display_name || user.displayName}</h4>
+                    <p style="color: #EDEDED; margin: 0 0 5px 0;">@${user.username}</p>
+                    <span style="color: #999; font-size: 12px;">Joined: ${new Date(user.created_at || user.registrationDate).toLocaleDateString()}</span>
+                </div>
+                ${user.username.toLowerCase() !== 'raj' ? `<button class="remove-btn" onclick="removeUser('${user.username}', ${user.id})" style="background: #ff4444; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer;">Remove</button>` : ''}
+            `;
+            usersListContainer.appendChild(userItem);
+        });
+    } catch (error) {
+        console.error('Failed to load users:', error);
+    }
+}
+
+function removeUser(username, userId) {
+    if (username.toLowerCase() === 'raj') {
+        alert('Cannot remove the owner account!');
+        return;
+    }
+
+    if (confirm(`Are you sure you want to remove user "${username}"?`)) {
+        // Remove from localStorage
+        let users = JSON.parse(localStorage.getItem('users')) || [];
+        users = users.filter(user => user.username !== username);
+        localStorage.setItem('users', JSON.stringify(users));
+        
+        // TODO: Also remove from database via API when available
+        
+        loadUsersList();
+        loadStatistics();
+        showNotification('User removed successfully! 🗑️');
     }
 }
 
