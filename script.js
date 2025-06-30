@@ -147,8 +147,24 @@ async function loginUser(event) {
         }
     } catch (error) {
         console.error('Login failed:', error);
-        // Fallback for local testing
-        alert('Login failed. Please check your credentials.');
+        
+        // Fallback to local storage for testing
+        const users = JSON.parse(localStorage.getItem('users')) || [];
+        const user = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
+        
+        if (user) {
+            currentUser = {
+                id: user.id,
+                username: user.username,
+                displayName: user.displayName || user.username,
+                bio: user.bio || 'Welcome to my gaming profile!',
+                isOwner: false
+            };
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            showMainSite();
+        } else {
+            alert('Login failed. Please check your credentials.');
+        }
     }
 }
 
@@ -448,28 +464,7 @@ function registerUser(event) {
     }
 }
 
-async function loginUser(event) {
-    event.preventDefault();
-    const username = document.getElementById('login-username').value;
-    const password = document.getElementById('login-password').value;
 
-    try {
-        const response = await apiCall('/auth/login', {
-            method: 'POST',
-            body: JSON.stringify({ username, password })
-        });
-
-        if (response.success) {
-            currentUser = response.user;
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
-            showMainSite();
-            showNotification('Welcome back, ' + response.user.displayName + '!', 'success');
-        }
-    } catch (error) {
-        console.error('Login failed:', error);
-        showNotification('Invalid username or password!', 'error');
-    }
-}
 
 function logout() {
     currentUser = null;
@@ -539,29 +534,7 @@ function showAuthSection() {
     if (mainSite) mainSite.style.display = 'none';
 }
 
-function showMainSite() {
-    const authSection = document.getElementById('auth-section');
-    const mainSite = document.getElementById('main-site');
-    const profileName = document.getElementById('profile-name');
-    const profileUsername = document.getElementById('profile-username');
 
-    if (authSection) authSection.style.display = 'none';
-    if (mainSite) mainSite.style.display = 'block';
-
-    // Update profile display
-    if (profileName) profileName.textContent = currentUser.displayName || currentUser.username;
-    if (profileUsername) profileUsername.textContent = '@' + currentUser.username;
-
-    // Show welcome section by default
-    showSection('welcome-section');
-
-    // Add owner panel link if user is owner
-    if (currentUser.username.toLowerCase() === 'raj') {
-        addOwnerPanelToNav();
-    }
-}v();
-    }
-}
 
 function showSection(sectionName) {
     // Hide all sections
